@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hotel Management System</title>
+
+<style>
+body{
+    margin:0;
+    font-family: Arial, Helvetica, sans-serif;
+    background:#f4f6f9;
+}
+
+header{
+    background:#1e3d59;
+    color:white;
+    padding:15px;
+    text-align:center;
+}
+
+nav{
+    background:#17324d;
+    padding:10px;
+    display:flex;
+    justify-content:center;
+    gap:15px;
+}
+
+nav button{
+    padding:10px 20px;
+    border:none;
+    background:#2a5d84;
+    color:white;
+    cursor:pointer;
+    border-radius:5px;
+}
+
+nav button:hover{
+    background:#1e3d59;
+}
+
+.container{
+    padding:20px;
+}
+
+.card{
+    background:white;
+    padding:20px;
+    margin-bottom:20px;
+    border-radius:10px;
+    box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
+
+input, select{
+    padding:8px;
+    margin:5px 0;
+    width:100%;
+}
+
+button.action{
+    background:#28a745;
+    color:white;
+    padding:8px 15px;
+    border:none;
+    cursor:pointer;
+    margin-top:10px;
+}
+
+button.delete{
+    background:#dc3545;
+    color:white;
+    padding:6px 10px;
+    border:none;
+    cursor:pointer;
+}
+
+table{
+    width:100%;
+    border-collapse: collapse;
+    margin-top:10px;
+}
+
+table, th, td{
+    border:1px solid #ddd;
+}
+
+th, td{
+    padding:10px;
+    text-align:center;
+}
+
+.hidden{
+    display:none;
+}
+
+@media(max-width:768px){
+    nav{
+        flex-direction:column;
+    }
+}
+</style>
+</head>
+<body>
+
+<header>
+<h1>🏨 Hotel Management System</h1>
+</header>
+
+<nav>
+<button onclick="showSection('dashboard')">Dashboard</button>
+<button onclick="showSection('rooms')">Rooms</button>
+<button onclick="showSection('guests')">Guests</button>
+<button onclick="showSection('bookings')">Bookings</button>
+</nav>
+
+<div class="container">
+
+<!-- Dashboard -->
+<div id="dashboard" class="card">
+<h2>Dashboard</h2>
+<p>Total Rooms: <span id="totalRooms">0</span></p>
+<p>Total Guests: <span id="totalGuests">0</span></p>
+<p>Total Bookings: <span id="totalBookings">0</span></p>
+</div>
+
+<!-- Rooms -->
+<div id="rooms" class="card hidden">
+<h2>Room Management</h2>
+
+<input type="text" id="roomNumber" placeholder="Room Number">
+<select id="roomType">
+<option value="">Select Type</option>
+<option>Single</option>
+<option>Double</option>
+<option>Suite</option>
+</select>
+<select id="roomStatus">
+<option>Available</option>
+<option>Booked</option>
+</select>
+<button class="action" onclick="addRoom()">Add Room</button>
+
+<table>
+<thead>
+<tr>
+<th>Number</th>
+<th>Type</th>
+<th>Status</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="roomList"></tbody>
+</table>
+</div>
+
+<!-- Guests -->
+<div id="guests" class="card hidden">
+<h2>Guest Management</h2>
+
+<input type="text" id="guestName" placeholder="Guest Name">
+<input type="text" id="guestPhone" placeholder="Phone Number">
+<button class="action" onclick="addGuest()">Add Guest</button>
+
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Phone</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="guestList"></tbody>
+</table>
+</div>
+
+<!-- Bookings -->
+<div id="bookings" class="card hidden">
+<h2>Booking Management</h2>
+
+<select id="bookingGuest"></select>
+<select id="bookingRoom"></select>
+<input type="date" id="checkIn">
+<input type="date" id="checkOut">
+<button class="action" onclick="addBooking()">Add Booking</button>
+
+<table>
+<thead>
+<tr>
+<th>Guest</th>
+<th>Room</th>
+<th>Check-In</th>
+<th>Check-Out</th>
+<th>Action</th>
+</tr>
+</thead>
+<tbody id="bookingList"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+let rooms = JSON.parse(localStorage.getItem("rooms")) || [];
+let guests = JSON.parse(localStorage.getItem("guests")) || [];
+let bookings = JSON.parse(localStorage.getItem("bookings")) || [];
+
+function saveData(){
+    localStorage.setItem("rooms", JSON.stringify(rooms));
+    localStorage.setItem("guests", JSON.stringify(guests));
+    localStorage.setItem("bookings", JSON.stringify(bookings));
+    updateDashboard();
+}
+
+function showSection(section){
+    document.querySelectorAll(".card").forEach(c=>c.classList.add("hidden"));
+    document.getElementById(section).classList.remove("hidden");
+}
+
+function updateDashboard(){
+    document.getElementById("totalRooms").innerText = rooms.length;
+    document.getElementById("totalGuests").innerText = guests.length;
+    document.getElementById("totalBookings").innerText = bookings.length;
+}
+
+/* ROOM */
+function addRoom(){
+    let number = document.getElementById("roomNumber").value;
+    let type = document.getElementById("roomType").value;
+    let status = document.getElementById("roomStatus").value;
+
+    if(number && type){
+        rooms.push({number,type,status});
+        saveData();
+        renderRooms();
+
+        document.getElementById("roomNumber").value="";
+        document.getElementById("roomType").value="";
+        document.getElementById("roomStatus").value="Available";
+    }
+}
+
+function deleteRoom(index){
+    rooms.splice(index,1);
+    saveData();
+    renderRooms();
+}
+
+function renderRooms(){
+    let list = document.getElementById("roomList");
+    list.innerHTML="";
+    rooms.forEach((r,i)=>{
+        list.innerHTML += `
+        <tr>
+            <td>${r.number}</td>
+            <td>${r.type}</td>
+            <td>${r.status}</td>
+            <td><button class="delete" onclick="deleteRoom(${i})">Delete</button></td>
+        </tr>`;
+    });
+    updateRoomOptions();
+}
+
+/* GUEST */
+function addGuest(){
+    let name = document.getElementById("guestName").value;
+    let phone = document.getElementById("guestPhone").value;
+
+    if(name && phone){
+        guests.push({name,phone});
+        saveData();
+        renderGuests();
+
+        document.getElementById("guestName").value="";
+        document.getElementById("guestPhone").value="";
+    }
+}
+
+function deleteGuest(index){
+    guests.splice(index,1);
+    saveData();
+    renderGuests();
+}
+
+function renderGuests(){
+    let list = document.getElementById("guestList");
+    list.innerHTML="";
+    guests.forEach((g,i)=>{
+        list.innerHTML += `
+        <tr>
+            <td>${g.name}</td>
+            <td>${g.phone}</td>
+            <td><button class="delete" onclick="deleteGuest(${i})">Delete</button></td>
+        </tr>`;
+    });
+    updateGuestOptions();
+}
+
+/* BOOKING */
+function addBooking(){
+    let guest = document.getElementById("bookingGuest").value;
+    let room = document.getElementById("bookingRoom").value;
+    let checkIn = document.getElementById("checkIn").value;
+    let checkOut = document.getElementById("checkOut").value;
+
+    if(guest && room && checkIn && checkOut){
+        bookings.push({guest,room,checkIn,checkOut});
+
+        let selectedRoom = rooms.find(r => r.number === room);
+        if(selectedRoom){
+            selectedRoom.status = "Booked";
+        }
+
+        saveData();
+        renderRooms();
+        renderBookings();
+
+        document.getElementById("bookingGuest").value="";
+        document.getElementById("bookingRoom").value="";
+        document.getElementById("checkIn").value="";
+        document.getElementById("checkOut").value="";
+    }
+}
+
+function deleteBooking(index){
+    let roomNumber = bookings[index].room;
+
+    let selectedRoom = rooms.find(r => r.number === roomNumber);
+    if(selectedRoom){
+        selectedRoom.status = "Available";
+    }
+
+    bookings.splice(index,1);
+    saveData();
+    renderRooms();
+    renderBookings();
+}
+
+function renderBookings(){
+    let list = document.getElementById("bookingList");
+    list.innerHTML="";
+    bookings.forEach((b,i)=>{
+        list.innerHTML += `
+        <tr>
+            <td>${b.guest}</td>
+            <td>${b.room}</td>
+            <td>${b.checkIn}</td>
+            <td>${b.checkOut}</td>
+            <td><button class="delete" onclick="deleteBooking(${i})">Delete</button></td>
+        </tr>`;
+    });
+}
+
+/* Dropdown updates */
+function updateGuestOptions(){
+    let select = document.getElementById("bookingGuest");
+    select.innerHTML = "<option value=''>Select Guest</option>";
+    guests.forEach(g=>{
+        select.innerHTML += `<option>${g.name}</option>`;
+    });
+}
+
+function updateRoomOptions(){
+    let select = document.getElementById("bookingRoom");
+    select.innerHTML = "<option value=''>Select Room</option>";
+    rooms.filter(r=>r.status==="Available").forEach(r=>{
+        select.innerHTML += `<option>${r.number}</option>`;
+    });
+}
+
+renderRooms();
+renderGuests();
+renderBookings();
+updateDashboard();
+</script>
+
+</body>
+</html>
